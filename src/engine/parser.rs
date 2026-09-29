@@ -1,7 +1,7 @@
 use super::types::Value;
 use super::types::ValueType;
-use super::types::ParseError;
-use super::types::ParseTypeError;
+use super::error_types::ParseError;
+use super::error_types::ParseTypeError;
 use std::str::FromStr;
 
 pub struct VecValue {
@@ -33,7 +33,7 @@ impl VecValue {
         for (i, (val, val_type)) in values.iter().zip(values_types.iter()).enumerate() {
             match val_type {
                 ValueType::Int => self.vec.push(Value::Int(
-                        val.parse::<i64>().map_err(|_| ParseError::InvalidValue{ value: val.to_string(), index: i, value_type: *val_type }
+                        val.parse::<i128>().map_err(|_| ParseError::InvalidValue{ value: val.to_string(), index: i, value_type: *val_type }
                 )?)),
 
                 ValueType::Float => self.vec.push(Value::Float(
@@ -49,18 +49,40 @@ impl VecValue {
                 }
 
                 ValueType::VectorInt => {
-                    let v = val.trim_start_matches('[').trim_end_matches(']').split(',').map(|v| v.trim().trim_ascii_start().trim_ascii_end().parse::<i64>()).collect::<Result<Vec<i64>, _>>().map_err(|_| ParseError::InvalidValue{ value: val.to_string(), index: i, value_type: *val_type})?;
+                    let inner = val.strip_prefix('[').and_then(|s| s.strip_suffix(']')).ok_or_else(|| ParseError::InvalidValue { value: val.to_string(), index: i, value_type: *val_type })?;
+
+                    let v = inner.split(',').map(|v| v.trim().trim_ascii_start().trim_ascii_end().parse::<i128>()).collect::<Result<Vec<i128>, _>>().map_err(|_| ParseError::InvalidValue{ value: val.to_string(), index: i, value_type: *val_type})?;
                     self.vec.push(Value::VectorInt(v));
                 }
 
                 ValueType::VectorFloat => {
-                    let v = val.trim_start_matches('[').trim_end_matches(']').split(',').map(|v| v.trim().trim_ascii_start().trim_ascii_end().parse::<f64>()).collect::<Result<Vec<f64>, _>>().map_err(|_| ParseError::InvalidValue{ value: val.to_string(), index: i, value_type: *val_type})?;
+                    let inner = val.strip_prefix('[').and_then(|s| s.strip_suffix(']')).ok_or_else(|| ParseError::InvalidValue { value: val.to_string(), index: i, value_type: *val_type })?;
+
+                    let v = inner.split(',').map(|v| v.trim().trim_ascii_start().trim_ascii_end().parse::<f64>()).collect::<Result<Vec<f64>, _>>().map_err(|_| ParseError::InvalidValue{ value: val.to_string(), index: i, value_type: *val_type})?;
                     self.vec.push(Value::VectorFloat(v));
                 }
             }
         }
 
         Ok(())
+    }
+
+    pub fn zero_init(&mut self, values_types: Vec<ValueType>) {
+        for val_type in values_types.into_iter() {
+            match val_type {
+                ValueType::Int => self.vec.push(Value::zero_int()),
+
+                ValueType::Float => self.vec.push(Value::zero_float()),
+
+                ValueType::Bool => self.vec.push(Value::zero_bool()),
+
+                ValueType::String => self.vec.push(Value::empty_string()),
+
+                ValueType::VectorInt => self.vec.push(Value::empty_vecint()),
+
+                ValueType::VectorFloat => self.vec.push(Value::empty_vecfloat())
+            }
+        }
     }
 
     pub fn get_vec(&self) -> &Vec<Value> {

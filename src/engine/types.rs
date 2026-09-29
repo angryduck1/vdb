@@ -1,8 +1,21 @@
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
 use std::result::Result;
+use std::num::NonZeroU32;
 use std::fmt;
+
 use super::parser_name;
+use super::error_types::ValuesError;
+
+#[derive(Debug)]
+pub enum Value {
+    Int(i128),
+    Float(f64),
+    Bool(bool),
+    String(String),
+    VectorInt(Vec<i128>),
+    VectorFloat(Vec<f64>),
+}
 
 #[derive(Debug, Clone, Copy)]
 pub enum ValueType {
@@ -14,69 +27,18 @@ pub enum ValueType {
     VectorFloat,
 }
 
-pub enum ParseError {
-    LengthMismatch {
-        expected: usize,
-        received: usize,
-    },
-
-    InvalidValue {
-        value: String,
-        index: usize,
-        value_type: ValueType
-    },
+pub enum Policy {
+    ForeignInit,
+    Inline
 }
 
-pub enum ParseTypeError {
-    InvalidType {
-        value_type: String
-    },
-}
-
-pub enum ValuesError {
-    Occupied {
-        hash: u64,
-    },
-
-    LengthMismatch {
-        expected: usize,
-        received: usize,
-    },
-
-    NullSize,
-
-    DuplicateName {
-        name: String,
-        old_index: usize,
-        index: usize,
-    },
-
-    EmptyName {
-        index: usize,
-    },
-
-    InvalidName {
-        name: String
-    },
-}
-
-#[derive(Debug)]
-pub enum Value {
-    Int(i64),
-    Float(f64),
-    Bool(bool),
-    String(String),
-    VectorInt(Vec<i64>),
-    VectorFloat(Vec<f64>),
-}
-
-pub struct Schema {
-    pub fields: Vec<Value>,
-    pub map: HashMap<String, usize>,
-}
-
-pub struct Values {
-    pub map: HashMap<u64, Schema>
+impl Value {
+    pub fn zero_int() -> Self{Value::Int(0)}
+    pub fn zero_float() -> Self{Value::Float(0.0)}
+    pub fn zero_bool() -> Self{Value::Bool(false)}
+    pub fn empty_string() -> Self{Value::String(String::new())}
+    pub fn empty_vecint() -> Self{Value::VectorInt(Vec::new())}
+    pub fn empty_vecfloat() -> Self{Value::VectorFloat(Vec::new())}
 }
 
 impl fmt::Display for ValueType {
@@ -92,31 +54,19 @@ impl fmt::Display for ValueType {
     }
 }
 
-impl fmt::Display for ParseError  {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            ParseError::LengthMismatch { expected, received } => write!(f, "LengthMismatch: Expected: {}, Received: {}", expected, received),
-            ParseError::InvalidValue { value, index, value_type } => write!(f, "InvalidValue: Value: {}, ValueType: {}, Index: {}", value, value_type, index)
-        }
-    }
+pub struct Schema {
+    pub fields: Vec<Value>,
+    pub policy: Policy,
+    pub ledger: Option<NonZeroU32>,
+    pub map: HashMap<String, usize>,
 }
 
-impl fmt::Display for ValuesError  {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            ValuesError::LengthMismatch { expected, received } => write!(f, "LengthMismatch (Values and Names): Expected: {}, Received: {}", expected, received),
-            ValuesError::NullSize => write!(f, "NullSize: Values and Names"),
-            ValuesError::DuplicateName{ name, old_index, index} => write!(f, "DuplicateName: Name {}, with Index: {} already exists in index {}", name, index, old_index),
-            ValuesError::InvalidName { name } => write!(f, "InvalidName: Name {} is invalid", name),
-            ValuesError::EmptyName{index} => write!(f, "EmptyName: Name with index {} is empty", index),
-            ValuesError::Occupied { hash } => write!(f, "Occupied: Hash {} already exists", hash),
-
-        }
-    }
+pub struct Table {
+    pub map: HashMap<u64, Schema>
 }
 
-impl Values {
-    pub fn add_values(&mut self, hash: u64, values: Vec<Value>, names: Vec<String>) -> Result<(), ValuesError> {
+impl Table {
+    pub fn add_values(&mut self, hash: u64, values: Vec<Value>, names: Vec<String>, policy: Policy, ledger: Option<NonZeroU32>) -> Result<(), ValuesError> {
         match self.map.entry(hash) {
             Entry::Occupied(_) => Err(ValuesError::Occupied { hash }),
             Entry::Vacant(m) => {
@@ -128,7 +78,7 @@ impl Values {
                     return Err(ValuesError::NullSize)
                 }
 
-                let mut schema: Schema = Schema { fields: Vec::with_capacity(values.len()), map: HashMap::with_capacity(values.len()) };
+                let mut schema: Schema = Schema { fields: Vec::with_capacity(values.len()), map: HashMap::with_capacity(values.len()), policy: policy, ledger: ledger  };
 
 
                 for (i, name) in names.iter().enumerate() {
