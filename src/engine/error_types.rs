@@ -42,8 +42,6 @@ pub enum ValuesError {
 
     DuplicateName {
         name: String,
-        old_index: usize,
-        index: usize,
     },
 
     EmptyName {
@@ -78,7 +76,7 @@ impl fmt::Display for ValuesError  {
         match self {
             ValuesError::LengthMismatch { expected, received } => write!(f, "LengthMismatch (Values and Names): Expected: {}, Received: {}", expected, received),
             ValuesError::NullSize => write!(f, "NullSize: Values and Names"),
-            ValuesError::DuplicateName{ name, old_index, index} => write!(f, "DuplicateName: Name {}, with Index: {} already exists in index {}", name, index, old_index),
+            ValuesError::DuplicateName{ name } => write!(f, "DuplicateName: Name {}, already exists", name),
             ValuesError::InvalidName { name } => write!(f, "InvalidName: Name {} is invalid", name),
             ValuesError::EmptyName{index} => write!(f, "EmptyName: Name with index {} is empty", index),
             ValuesError::Occupied { hash } => write!(f, "Occupied: Hash {} already exists", hash),
