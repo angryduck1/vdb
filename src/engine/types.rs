@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::collections::hash_map::Entry;
 use std::result::Result;
 use std::num::NonZeroU32;
@@ -55,10 +55,10 @@ impl fmt::Display for ValueType {
 }
 
 pub struct Schema {
-    pub fields: Vec<Value>,
+    pub fields: Box<[Value]>,
     pub policy: Policy,
     pub ledger: Option<NonZeroU32>,
-    pub map: HashMap<String, usize>,
+    names: Box<str>,
 }
 
 pub struct Table {
@@ -66,7 +66,7 @@ pub struct Table {
 }
 
 impl Table {
-    pub fn add_values(&mut self, hash: u64, values: Vec<Value>, names: Vec<String>, policy: Policy, ledger: Option<NonZeroU32>) -> Result<(), ValuesError> {
+    pub fn add_values(&mut self, hash: u64, values: Vec<Value>, names: Vec<&str>, policy: Policy, ledger: Option<NonZeroU32>) -> Result<(), ValuesError> {
         match self.map.entry(hash) {
             Entry::Occupied(_) => Err(ValuesError::Occupied { hash }),
             Entry::Vacant(m) => {
@@ -78,20 +78,23 @@ impl Table {
                     return Err(ValuesError::NullSize)
                 }
 
-                let mut schema: Schema = Schema { fields: Vec::with_capacity(values.len()), map: HashMap::with_capacity(values.len()), policy: policy, ledger: ledger  };
-
-
                 for (i, name) in names.iter().enumerate() {
                     parser_name::is_valid_name(i, name)?
                 }
 
-                for (i, (val, name)) in values.into_iter().zip(names).into_iter().enumerate() {
-                    if let Some(old_index) = schema.map.insert(name.clone(), i) {
-                        return Err(ValuesError::DuplicateName { name, old_index, index: i })
-                    }
+                let join_names = names.join("|");
 
-                    schema.fields.push(val)
+                let mut unique_names = HashSet::with_capacity(names.len());
+
+                for (i, name) in names.iter().enumerate() {
+                    parser_name::is_valid_name(i, name)?;
+
+                    if !unique_names.insert(*name) {
+                        return Err(ValuesError::DuplicateName { name: name.to_string() });
+                    }
                 }
+
+                let schema: Schema = Schema { fields: values.into_boxed_slice(), policy: policy, ledger: ledger, names: join_names.into_boxed_str()  };
 
                 m.insert(schema);
 
