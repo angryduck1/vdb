@@ -53,6 +53,17 @@ pub enum ValuesError {
     },
 }
 
+pub enum GetValue {
+    NonOccupiedHash {
+        hash: u64,
+    },
+
+    NonOccupiedName {
+        name: String,
+        hash: u64,
+    }
+}
+
 impl fmt::Display for ParseError  {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -81,6 +92,15 @@ impl fmt::Display for ValuesError  {
             ValuesError::EmptyName{index} => write!(f, "EmptyName: Name with index {} is empty", index),
             ValuesError::Occupied { hash } => write!(f, "Occupied: Hash {} already exists", hash),
 
+        }
+    }
+}
+
+impl fmt::Display for GetValue  {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            GetValue::NonOccupiedHash { hash } => write!(f, "NonOccupiedHash: Hash {} does not exists in Table", hash),
+            GetValue::NonOccupiedName { name, hash } => write!(f, "NonOccupiedName: Name {} does not exists in Scheme with hash {}", name, hash),
         }
     }
 }
