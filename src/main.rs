@@ -15,7 +15,6 @@ fn main() -> Result<(), ()>{
     name_struct.hash(&mut hasher);
     let hash_res = hasher.finish();
 
-
     //let str_values: Vec<&str> =  vec!["1", "1,2,3,4,5]", "[1.5555, 255.55, 34.444]", "!"];
     let name_of_values: Vec<&str> =  vec!["id", "sec_id", "third_3_id", "attention_555_id"];
     let type_of_values: Vec<ValueType> = vec![ValueType::Int, ValueType::VectorInt, ValueType::VectorFloat, ValueType::String];
@@ -37,6 +36,16 @@ fn main() -> Result<(), ()>{
     }
 
     println!("OK! Insert into HashMap!");
+
+    match hash_val_map.get_value(&hash_res, "id") {
+        Err(e) => {
+            eprint!("{}", e);
+            return Err(())
+        }
+        Ok(v) => {
+            println!("{}", v);
+        }
+    }
 
     Ok(())
 }
