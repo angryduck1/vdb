@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet};
 use std::collections::hash_map::Entry;
 use std::result::Result;
 use std::num::NonZeroU32;
-use std::fmt;
+use std::fmt::{self, write};
 
 use crate::engine::error_types::GetValue;
 
@@ -43,6 +43,7 @@ impl Value {
     pub fn empty_vecfloat() -> Self{Value::VectorFloat(Vec::new())}
 }
 
+
 impl fmt::Display for ValueType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -52,6 +53,19 @@ impl fmt::Display for ValueType {
             ValueType::String => write!(f, "String"),
             ValueType::VectorInt => write!(f, "VectorInt"),
             ValueType::VectorFloat => write!(f, "VectorFloat"),
+        }
+    }
+}
+
+impl fmt::Display for Value {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Value::Int(v) => write!(f, "{}", v.to_string()),
+            Value::Float(v) => write!(f, "{}", v.to_string()),
+            Value::Bool(v) => write!(f, "{}", v.to_string()),
+            Value::String(v) => write!(f, "{}", v),
+            Value::VectorInt(v) => write!(f, "{}", v.iter().map(|i| i.to_string()).collect::<Vec<String>>().join(", ")),
+            Value::VectorFloat(v) => write!(f, "{}", v.iter().map(|i| i.to_string()).collect::<Vec<String>>().join(", "))
         }
     }
 }
