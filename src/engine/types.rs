@@ -105,35 +105,20 @@ impl Table {
         }
     }
 
-    fn find_name(name: &str) -> Option<usize> {
-        let names: Vec<&str> = name.split("|").collect();
-
-        for (i, n) in names.iter().enumerate() {
-            if *n == name {
-                return Some(i);
-            }
-        }
-
-        None
+    fn find_name(name: &str, schema: &Schema) -> Option<usize> {
+        schema.names.split("|").position(|n| n == name)
     }
 
     pub fn get_value(&mut self, hash: &u64, name: &str) -> Result<Value, GetValue>  {
-       match self.map.get(hash) {
-           Some(schema) => {
-               let index: Option<usize> = Table::find_name(name);
+        let schema = self.map.get(hash).ok_or(GetValue::NonOccupiedHash { hash: *hash })?;
 
-               if let Some(name_index) = index {
-                   let value: Value = schema.fields.get(name_index).cloned().ok_or_else(|| GetValue::NonOccupiedName { name: name.to_string(), hash: *hash })?;
+        let index: usize = Table::find_name(name, schema)
+            .ok_or(GetValue::NonOccupiedName { name: name.to_string(), hash: *hash })?;
 
-                   return Ok(value);
-               } else {
-                   return Err(GetValue::NonOccupiedName { name: name.to_string(), hash: *hash })
-               }
-           },
+        let value: Value = schema.fields.get(index)
+            .cloned()
+            .ok_or_else(|| GetValue::NonOccupiedName { name: name.to_string(), hash: *hash })?;
 
-           None => {
-               return Err(GetValue::NonOccupiedHash { hash: *hash })
-           }
-       }
+        Ok(value)
     }
 }
