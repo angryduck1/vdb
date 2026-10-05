@@ -2,9 +2,9 @@ use std::collections::{HashMap, HashSet};
 use std::collections::hash_map::Entry;
 use std::result::Result;
 use std::num::NonZeroU32;
-use std::fmt::{self, write};
+use std::fmt::{self};
 
-use crate::engine::error_types::GetValue;
+use super::error_types::GetSetValueError;
 
 use super::parser_name;
 use super::error_types::ValuesError;
@@ -19,7 +19,7 @@ pub enum Value {
     VectorFloat(Vec<f64>),
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum ValueType {
     Int,
     Float,
@@ -41,6 +41,17 @@ impl Value {
     pub fn empty_string() -> Self{Value::String(String::new())}
     pub fn empty_vecint() -> Self{Value::VectorInt(Vec::new())}
     pub fn empty_vecfloat() -> Self{Value::VectorFloat(Vec::new())}
+
+    pub fn value_type(&self) -> ValueType {
+        match self {
+            Value::Int(_) => ValueType::Int,
+            Value::Float(_) => ValueType::Float,
+            Value::Bool(_) => ValueType::Bool,
+            Value::String(_) => ValueType::String,
+            Value::VectorInt(_) => ValueType::VectorInt,
+            Value::VectorFloat(_) => ValueType::VectorFloat,
+        }
+    }
 }
 
 
@@ -123,16 +134,49 @@ impl Table {
         schema.names.split("|").position(|n| n == name)
     }
 
-    pub fn get_value(&mut self, hash: &u64, name: &str) -> Result<Value, GetValue>  {
-        let schema = self.map.get(hash).ok_or(GetValue::NonOccupiedHash { hash: *hash })?;
+    pub fn get_schema(&self, hash: &u64) -> Result<&Schema, GetSetValueError> {
+        let schema = self.map.get(hash).ok_or(GetSetValueError::NonOccupiedHash { hash: *hash })?;
 
-        let index: usize = Table::find_name(name, schema)
-            .ok_or(GetValue::NonOccupiedName { name: name.to_string(), hash: *hash })?;
+        Ok(schema)
+    }
 
-        let value: Value = schema.fields.get(index)
+    pub fn get_mut_schema(&mut self, hash: &u64) -> Result<&mut Schema, GetSetValueError> {
+        let schema = self.map.get_mut(hash).ok_or(GetSetValueError::NonOccupiedHash { hash: *hash })?;
+
+        Ok(schema)
+    }
+
+    pub fn get_value(&mut self, hash: &u64, name: &str) -> Result<Value, GetSetValueError>  {
+        let schema = self.get_schema(hash)?;
+
+        let index = Table::find_name(name, schema)
+            .ok_or(GetSetValueError::NonOccupiedName { name: name.to_string(), hash: *hash })?;
+
+        let value = schema.fields.get(index)
             .cloned()
-            .ok_or_else(|| GetValue::NonOccupiedName { name: name.to_string(), hash: *hash })?;
+            .ok_or_else(|| GetSetValueError::NonOccupiedName { name: name.to_string(), hash: *hash })?;
 
         Ok(value)
+    }
+
+    pub fn set_value(&mut self, hash: &u64, name: &str, value: Value) -> Result<(), GetSetValueError>  {
+        let schema = self.get_mut_schema(hash)?;
+
+        if schema.ledger.is_some() {
+            return Err(GetSetValueError::SetValueWithLedger { name: name.to_string(), hash: *hash });
+        }
+
+        let index = Table::find_name(name, schema)
+            .ok_or(GetSetValueError::NonOccupiedName { name: name.to_string(), hash: *hash })?;
+
+        let field = &mut schema.fields[index];
+
+        if value.value_type() != field.value_type() {
+            return Err(GetSetValueError::TypeMismatch { name: name.to_string(), hash: *hash, expected: field.value_type(), received: value.value_type() });
+        }
+
+        *field = value;
+
+        Ok(())
     }
 }
