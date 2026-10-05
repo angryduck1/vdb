@@ -53,7 +53,7 @@ pub enum ValuesError {
     },
 }
 
-pub enum GetValue {
+pub enum GetSetValueError {
     NonOccupiedHash {
         hash: u64,
     },
@@ -61,6 +61,18 @@ pub enum GetValue {
     NonOccupiedName {
         name: String,
         hash: u64,
+    },
+
+    SetValueWithLedger {
+        name: String,
+        hash: u64,
+    },
+
+    TypeMismatch {
+        name: String,
+        hash: u64,
+        expected: ValueType,
+        received: ValueType,
     }
 }
 
@@ -96,11 +108,13 @@ impl fmt::Display for ValuesError  {
     }
 }
 
-impl fmt::Display for GetValue  {
+impl fmt::Display for GetSetValueError  {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            GetValue::NonOccupiedHash { hash } => write!(f, "NonOccupiedHash: Hash {} does not exists in Table", hash),
-            GetValue::NonOccupiedName { name, hash } => write!(f, "NonOccupiedName: Name {} does not exists in Scheme with hash {}", name, hash),
+            GetSetValueError::NonOccupiedHash { hash } => write!(f, "GetValue: NonOccupiedHash: Hash {} does not exists in Table", hash),
+            GetSetValueError::NonOccupiedName { name, hash } => write!(f, "GetValue: NonOccupiedName: Name {} does not exists in Scheme with hash {}", name, hash),
+            GetSetValueError::SetValueWithLedger { name, hash } => write!(f, "SetValue: SetValueWithLedger: Name {} with Scheme hash {} is Ledger value", name, hash),
+            GetSetValueError::TypeMismatch { name, hash, expected, received } => write!(f, "SetValue: TypeMismatch: Name {} with Scheme hash {} ExpectedType: {}, ReceivedType: {}", name, hash, expected, received),
         }
     }
 }
