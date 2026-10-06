@@ -1,5 +1,6 @@
 use super::types::ValueType;
-use std::fmt;
+use std::fmt::{self, write};
+use std::num::NonZeroU32;
 
 pub enum ParseError {
     LengthMismatch {
@@ -76,6 +77,22 @@ pub enum GetSetValueError {
     }
 }
 
+pub enum OperationError {
+    Access(GetSetValueError),
+
+    TypeMismatch {
+        name: String,
+        hash: u64,
+        expected: ValueType,
+        received: ValueType,
+    },
+
+    LedgerMismatch {
+        expected: NonZeroU32,
+        received: NonZeroU32,
+    }
+}
+
 impl fmt::Display for ParseError  {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -115,6 +132,16 @@ impl fmt::Display for GetSetValueError  {
             GetSetValueError::NonOccupiedName { name, hash } => write!(f, "GetValue: NonOccupiedName: Name {} does not exists in Scheme with hash {}", name, hash),
             GetSetValueError::SetValueWithLedger { name, hash } => write!(f, "SetValue: SetValueWithLedger: Name {} with Scheme hash {} is Ledger value", name, hash),
             GetSetValueError::TypeMismatch { name, hash, expected, received } => write!(f, "SetValue: TypeMismatch: Name {} with Scheme hash {} ExpectedType: {}, ReceivedType: {}", name, hash, expected, received),
+        }
+    }
+}
+
+impl fmt::Display for OperationError  {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            OperationError::Access(e) => write!(f, "OperationError: {}", e),
+            OperationError::TypeMismatch { name, hash, expected, received } => write!(f, "OperationError: TypeMismatch: Name {} with Scheme hash {} ExpectedType: {}, ReceivedType: {}", name, hash, expected, received),
+            OperationError::LedgerMismatch { expected, received } => write!(f, "OperationError: LedgerMismatch: ExpectedLedger: {}, ReceivedLedger: {}", expected, received),
         }
     }
 }
