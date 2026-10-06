@@ -4,10 +4,13 @@ use std::result::Result;
 use std::num::NonZeroU32;
 use std::fmt::{self};
 
+use crate::engine::error_types::OperationError;
+
 use super::error_types::GetSetValueError;
 
 use super::parser_name;
 use super::error_types::ValuesError;
+use super::operations::{ArithmeticOp, Operation, FieldRef};
 
 #[derive(Debug, Clone)]
 pub enum Value {
@@ -154,6 +157,18 @@ impl Table {
 
         let value = schema.fields.get(index)
             .cloned()
+            .ok_or_else(|| GetSetValueErroValueTyper::NonOccupiedName { name: name.to_string(), hash: *hash })?;
+
+        Ok(value)
+    }
+
+    pub fn get_mut_value(&mut self, hash: &u64, name: &str) -> Result<&mut Value, GetSetValueError>  {
+        let schema = self.get_mut_schema(hash)?;
+
+        let index = Table::find_name(name, schema)
+            .ok_or(GetSetValueError::NonOccupiedName { name: name.to_string(), hash: *hash })?;
+
+        let value = schema.fields.get_mut(index)
             .ok_or_else(|| GetSetValueError::NonOccupiedName { name: name.to_string(), hash: *hash })?;
 
         Ok(value)
@@ -178,5 +193,17 @@ impl Table {
         *field = value;
 
         Ok(())
+    }
+
+    pub fn apply(&mut self, operation: Operation) -> Result<(), OperationError> {
+        match operation {
+            Operation::Arith { target, op, amount } => {
+
+            },
+
+            Operation::Transfer { from, to, amount } => {
+
+            }
+        }
     }
 }
