@@ -54,7 +54,7 @@ pub enum ValuesError {
     },
 }
 
-pub enum GetSetValueError {
+pub enum GetValueError {
     NonOccupiedHash {
         hash: u64,
     },
@@ -63,6 +63,10 @@ pub enum GetSetValueError {
         name: String,
         hash: u64,
     },
+}
+
+pub enum SetValueError {
+    Access(GetValueError),
 
     SetValueWithLedger {
         name: String,
@@ -78,7 +82,7 @@ pub enum GetSetValueError {
 }
 
 pub enum OperationError {
-    Access(GetSetValueError),
+    Access(GetValueError),
 
     TypeMismatch {
         name: String,
@@ -90,6 +94,11 @@ pub enum OperationError {
     LedgerMismatch {
         expected: NonZeroU32,
         received: NonZeroU32,
+    },
+
+    LedgerIsNone {
+        name: String,
+        hash: u64,
     }
 }
 
@@ -125,13 +134,21 @@ impl fmt::Display for ValuesError  {
     }
 }
 
-impl fmt::Display for GetSetValueError  {
+impl fmt::Display for GetValueError  {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            GetSetValueError::NonOccupiedHash { hash } => write!(f, "GetValue: NonOccupiedHash: Hash {} does not exists in Table", hash),
-            GetSetValueError::NonOccupiedName { name, hash } => write!(f, "GetValue: NonOccupiedName: Name {} does not exists in Scheme with hash {}", name, hash),
-            GetSetValueError::SetValueWithLedger { name, hash } => write!(f, "SetValue: SetValueWithLedger: Name {} with Scheme hash {} is Ledger value", name, hash),
-            GetSetValueError::TypeMismatch { name, hash, expected, received } => write!(f, "SetValue: TypeMismatch: Name {} with Scheme hash {} ExpectedType: {}, ReceivedType: {}", name, hash, expected, received),
+            GetValueError::NonOccupiedHash { hash } => write!(f, "GetValue: NonOccupiedHash: Hash {} does not exists in Table", hash),
+            GetValueError::NonOccupiedName { name, hash } => write!(f, "GetValue: NonOccupiedName: Name {} does not exists in Scheme with hash {}", name, hash),
+        }
+    }
+}
+
+impl fmt::Display for SetValueError  {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            SetValueError::Access(e) => write!(f, "GetValueError: {}", e),
+            SetValueError::SetValueWithLedger { name, hash } => write!(f, "SetValue: SetValueWithLedger: Name {} with Scheme hash {} is Ledger value", name, hash),
+            SetValueError::TypeMismatch { name, hash, expected, received } => write!(f, "SetValue: TypeMismatch: Name {} with Scheme hash {} ExpectedType: {}, ReceivedType: {}", name, hash, expected, received),
         }
     }
 }
@@ -142,6 +159,19 @@ impl fmt::Display for OperationError  {
             OperationError::Access(e) => write!(f, "OperationError: {}", e),
             OperationError::TypeMismatch { name, hash, expected, received } => write!(f, "OperationError: TypeMismatch: Name {} with Scheme hash {} ExpectedType: {}, ReceivedType: {}", name, hash, expected, received),
             OperationError::LedgerMismatch { expected, received } => write!(f, "OperationError: LedgerMismatch: ExpectedLedger: {}, ReceivedLedger: {}", expected, received),
+            OperationError::LedgerIsNone { name, hash } => write!(f, "OperationError: LedgerIsNone: Name {} with Scheme hash {} has None Ledger", name, hash),
         }
+    }
+}
+
+impl From<GetValueError> for SetValueError {
+    fn from(value: GetValueError) -> Self {
+        SetValueError::Access(value)
+    }
+}
+
+impl From<GetValueError> for OperationError {
+    fn from(value: GetValueError) -> Self {
+        OperationError::Access(value)
     }
 }
