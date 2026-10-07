@@ -6,7 +6,7 @@ use std::fmt::{self};
 
 use crate::engine::error_types::OperationError;
 
-use super::error_types::GetSetValueError;
+use super::error_types::{SetValueError, GetValueError};
 
 use super::parser_name;
 use super::error_types::ValuesError;
@@ -137,57 +137,57 @@ impl Table {
         schema.names.split("|").position(|n| n == name)
     }
 
-    pub fn get_schema(&self, hash: &u64) -> Result<&Schema, GetSetValueError> {
-        let schema = self.map.get(hash).ok_or(GetSetValueError::NonOccupiedHash { hash: *hash })?;
+    pub fn get_schema(&self, hash: &u64) -> Result<&Schema, GetValueError> {
+        let schema = self.map.get(hash).ok_or(GetValueError::NonOccupiedHash { hash: *hash })?;
 
         Ok(schema)
     }
 
-    pub fn get_mut_schema(&mut self, hash: &u64) -> Result<&mut Schema, GetSetValueError> {
-        let schema = self.map.get_mut(hash).ok_or(GetSetValueError::NonOccupiedHash { hash: *hash })?;
+    pub fn get_mut_schema(&mut self, hash: &u64) -> Result<&mut Schema, GetValueError> {
+        let schema = self.map.get_mut(hash).ok_or(GetValueError::NonOccupiedHash { hash: *hash })?;
 
         Ok(schema)
     }
 
-    pub fn get_value(&mut self, hash: &u64, name: &str) -> Result<Value, GetSetValueError>  {
+    pub fn get_value(&mut self, hash: &u64, name: &str) -> Result<Value, GetValueError>  {
         let schema = self.get_schema(hash)?;
 
         let index = Table::find_name(name, schema)
-            .ok_or(GetSetValueError::NonOccupiedName { name: name.to_string(), hash: *hash })?;
+            .ok_or(GetValueError::NonOccupiedName { name: name.to_string(), hash: *hash })?;
 
         let value = schema.fields.get(index)
             .cloned()
-            .ok_or_else(|| GetSetValueErroValueTyper::NonOccupiedName { name: name.to_string(), hash: *hash })?;
+            .ok_or_else(|| GetValueError::NonOccupiedName { name: name.to_string(), hash: *hash })?;
 
         Ok(value)
     }
 
-    pub fn get_mut_value(&mut self, hash: &u64, name: &str) -> Result<&mut Value, GetSetValueError>  {
+    pub fn get_mut_value(&mut self, hash: &u64, name: &str) -> Result<&mut Value, GetValueError>  {
         let schema = self.get_mut_schema(hash)?;
 
         let index = Table::find_name(name, schema)
-            .ok_or(GetSetValueError::NonOccupiedName { name: name.to_string(), hash: *hash })?;
+            .ok_or(GetValueError::NonOccupiedName { name: name.to_string(), hash: *hash })?;
 
         let value = schema.fields.get_mut(index)
-            .ok_or_else(|| GetSetValueError::NonOccupiedName { name: name.to_string(), hash: *hash })?;
+            .ok_or_else(|| GetValueError::NonOccupiedName { name: name.to_string(), hash: *hash })?;
 
         Ok(value)
     }
 
-    pub fn set_value(&mut self, hash: &u64, name: &str, value: Value) -> Result<(), GetSetValueError>  {
+    pub fn set_value(&mut self, hash: &u64, name: &str, value: Value) -> Result<(), SetValueError>  {
         let schema = self.get_mut_schema(hash)?;
 
         if schema.ledger.is_some() {
-            return Err(GetSetValueError::SetValueWithLedger { name: name.to_string(), hash: *hash });
+            return Err(SetValueError::SetValueWithLedger { name: name.to_string(), hash: *hash });
         }
 
         let index = Table::find_name(name, schema)
-            .ok_or(GetSetValueError::NonOccupiedName { name: name.to_string(), hash: *hash })?;
+             .ok_or(GetValueError::NonOccupiedName { name: name.to_string(), hash: *hash })?;
 
         let field = &mut schema.fields[index];
 
         if value.value_type() != field.value_type() {
-            return Err(GetSetValueError::TypeMismatch { name: name.to_string(), hash: *hash, expected: field.value_type(), received: value.value_type() });
+            return Err(SetValueError::TypeMismatch { name: name.to_string(), hash: *hash, expected: field.value_type(), received: value.value_type() });
         }
 
         *field = value;
@@ -198,11 +198,26 @@ impl Table {
     pub fn apply(&mut self, operation: Operation) -> Result<(), OperationError> {
         match operation {
             Operation::Arith { target, op, amount } => {
-
+                Ok(())
             },
 
             Operation::Transfer { from, to, amount } => {
+                let schema_from = self.get_mut_schema(&from.hash)?;
+                let schema_to = self.get_mut_schema(&to.hash)?;
 
+                if schema_from.ledger.is_none() {
+                    return Err(OperationError::LedgerIsNone { name: from.name.to_string(), hash: from.hash })
+                }
+
+                if schema_to.ledger.is_none() {
+                    return Err(OperationError::LedgerIsNone { name: to.name.to_string(), hash: to.hash })
+                }
+
+                if schema_from.ledger.unwrap() != schema_to.ledger.unwrap() {
+                    return Err(OperationError::LedgerMismatch { expected: schema_from.ledger.unwrap(), received: schema_to.ledger.unwrap() })
+                }
+
+                Ok(())
             }
         }
     }
