@@ -99,6 +99,10 @@ pub enum OperationError {
     LedgerIsNone {
         name: String,
         hash: u64,
+    },
+
+    EqualHashs {
+        hash: u64
     }
 }
 
@@ -160,6 +164,7 @@ impl fmt::Display for OperationError  {
             OperationError::TypeMismatch { name, hash, expected, received } => write!(f, "OperationError: TypeMismatch: Name {} with Scheme hash {} ExpectedType: {}, ReceivedType: {}", name, hash, expected, received),
             OperationError::LedgerMismatch { expected, received } => write!(f, "OperationError: LedgerMismatch: ExpectedLedger: {}, ReceivedLedger: {}", expected, received),
             OperationError::LedgerIsNone { name, hash } => write!(f, "OperationError: LedgerIsNone: Name {} with Scheme hash {} has None Ledger", name, hash),
+            OperationError::EqualHashs { hash } => write!(f, "OperationError: EqualHashs: From Hash {} is equal with To Hash", hash),
         }
     }
 }

@@ -37,7 +37,7 @@ fn main() -> Result<(), ()>{
 
     println!("OK! Insert into HashMap!");
 
-    match hash_val_map.get_value(&hash_res, "id") {
+    match hash_val_map.get_value(&hash_res, "sec_id") {
         Err(e) => {
             eprint!("{}", e);
             return Err(())

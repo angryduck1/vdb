@@ -8,7 +8,7 @@ pub enum ArithmeticOp {
 }
 
 pub struct FieldRef<'a> {
-    pub hash: u64, 
+    pub hash: u64,
     pub name: &'a str,
 }
 
@@ -23,5 +23,11 @@ pub enum Operation<'a> {
         from: FieldRef<'a>,
         to: FieldRef<'a>,
         amount: usize
+    }
+}
+
+impl Value {
+    pub fn transfer_amount(&mut self, to: &mut Value, amount: usize) {
+
     }
 }
