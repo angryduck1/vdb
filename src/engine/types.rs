@@ -202,8 +202,14 @@ impl Table {
             },
 
             Operation::Transfer { from, to, amount } => {
-                let schema_from = self.get_mut_schema(&from.hash)?;
-                let schema_to = self.get_mut_schema(&to.hash)?;
+                if from.hash == to.hash {
+                    return Err(OperationError::EqualHashs { hash: from.hash })
+                }
+
+                let [schema_from, schema_to] = self.map.get_disjoint_mut([&from.hash, &to.hash]);
+
+                let schema_from = schema_from.ok_or_else(|| GetValueError::NonOccupiedHash { hash: from.hash })?;
+                let schema_to = schema_to.ok_or_else(|| GetValueError::NonOccupiedHash { hash: from.hash })?;
 
                 if schema_from.ledger.is_none() {
                     return Err(OperationError::LedgerIsNone { name: from.name.to_string(), hash: from.hash })
@@ -217,7 +223,16 @@ impl Table {
                     return Err(OperationError::LedgerMismatch { expected: schema_from.ledger.unwrap(), received: schema_to.ledger.unwrap() })
                 }
 
+                let index_from = Table::find_name(from.name, schema_from)
+                     .ok_or(GetValueError::NonOccupiedName { name: from.name.to_string(), hash: from.hash })?;
+                let field_from = &mut schema_from.fields[index_from];
+
+                let index_to = Table::find_name(from.name, schema_to)
+                     .ok_or(GetValueError::NonOccupiedName { name: from.name.to_string(), hash: from.hash })?;
+                let field_to = &mut schema_from.fields[index_to];
+
                 Ok(())
+
             }
         }
     }
