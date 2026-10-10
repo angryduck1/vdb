@@ -29,6 +29,7 @@ pub enum ParseLedgerError {
     ZeroValue,
 }
 
+#[derive(Debug, Eq, PartialEq)]
 pub enum ValuesError {
     Occupied {
         hash: u64,
@@ -84,9 +85,18 @@ pub enum SetValueError {
 pub enum OperationError {
     Access(GetValueError),
 
+    InvalidType {
+        received: ValueType,
+    },
+
     TypeMismatch {
         name: String,
         hash: u64,
+        expected: ValueType,
+        received: ValueType,
+    },
+
+    OperationTypeMismatch {
         expected: ValueType,
         received: ValueType,
     },
@@ -103,7 +113,13 @@ pub enum OperationError {
 
     EqualHashs {
         hash: u64
-    }
+    },
+
+    AmountOverflow {
+        amount: u128
+    },
+
+    BalanceOverflow,
 }
 
 impl fmt::Display for ParseError  {
@@ -161,10 +177,14 @@ impl fmt::Display for OperationError  {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             OperationError::Access(e) => write!(f, "OperationError: {}", e),
+            OperationError::InvalidType { received } => write!(f, "OperationError: InvalidType: Amount ExpectedType: UInt, ReceivedType: {}", received),
             OperationError::TypeMismatch { name, hash, expected, received } => write!(f, "OperationError: TypeMismatch: Name {} with Scheme hash {} ExpectedType: {}, ReceivedType: {}", name, hash, expected, received),
             OperationError::LedgerMismatch { expected, received } => write!(f, "OperationError: LedgerMismatch: ExpectedLedger: {}, ReceivedLedger: {}", expected, received),
             OperationError::LedgerIsNone { name, hash } => write!(f, "OperationError: LedgerIsNone: Name {} with Scheme hash {} has None Ledger", name, hash),
             OperationError::EqualHashs { hash } => write!(f, "OperationError: EqualHashs: From Hash {} is equal with To Hash", hash),
+            OperationError::AmountOverflow { amount } => write!(f, "OperationError: AmountOverflow: Fail convert u128: {} to i128", amount),
+            OperationError::BalanceOverflow => write!(f, "OperationError: BalanceOverflow"),
+            OperationError::OperationTypeMismatch { expected, received } => write!(f, "OperationError: OperationTypeMismatch: ExpectedType: {}, ReceivedType: {}", expected, received)
         }
     }
 }
