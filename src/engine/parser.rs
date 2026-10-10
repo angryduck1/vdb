@@ -13,7 +13,8 @@ impl FromStr for ValueType {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_ascii_lowercase().as_str() {
-            "int" | "i64" => Ok(Self::Int),
+            "int" | "i128" => Ok(Self::Int),
+            "uint" | "u128" => Ok(Self::UInt),
             "float" | "f64" => Ok(Self::Float),
             "bool" => Ok(Self::Bool),
             "string" | "str" => Ok(Self::String),
@@ -34,6 +35,10 @@ impl VecValue {
             match val_type {
                 ValueType::Int => self.vec.push(Value::Int(
                         val.parse::<i128>().map_err(|_| ParseError::InvalidValue{ value: val.to_string(), index: i, value_type: *val_type }
+                )?)),
+
+                ValueType::UInt => self.vec.push(Value::UInt(
+                        val.parse::<u128>().map_err(|_| ParseError::InvalidValue{ value: val.to_string(), index: i, value_type: *val_type }
                 )?)),
 
                 ValueType::Float => self.vec.push(Value::Float(
@@ -71,6 +76,8 @@ impl VecValue {
         for val_type in values_types.into_iter() {
             match val_type {
                 ValueType::Int => self.vec.push(Value::zero_int()),
+
+                ValueType::UInt => self.vec.push(Value::zero_uint()),
 
                 ValueType::Float => self.vec.push(Value::zero_float()),
 
