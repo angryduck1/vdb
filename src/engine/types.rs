@@ -15,6 +15,7 @@ use super::operations::{ArithmeticOp, Operation, FieldRef};
 #[derive(Debug, Clone)]
 pub enum Value {
     Int(i128),
+    UInt(u128),
     Float(f64),
     Bool(bool),
     String(String),
@@ -25,6 +26,7 @@ pub enum Value {
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum ValueType {
     Int,
+    UInt,
     Float,
     Bool,
     String,
@@ -39,6 +41,7 @@ pub enum Policy {
 
 impl Value {
     pub fn zero_int() -> Self{Value::Int(0)}
+    pub fn zero_uint() -> Self{Value::UInt(0)}
     pub fn zero_float() -> Self{Value::Float(0.0)}
     pub fn zero_bool() -> Self{Value::Bool(false)}
     pub fn empty_string() -> Self{Value::String(String::new())}
@@ -48,6 +51,7 @@ impl Value {
     pub fn value_type(&self) -> ValueType {
         match self {
             Value::Int(_) => ValueType::Int,
+            Value::UInt(_) => ValueType::UInt,
             Value::Float(_) => ValueType::Float,
             Value::Bool(_) => ValueType::Bool,
             Value::String(_) => ValueType::String,
@@ -62,6 +66,7 @@ impl fmt::Display for ValueType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             ValueType::Int => write!(f, "Int"),
+            ValueType::UInt => write!(f, "UInt"),
             ValueType::Float => write!(f, "Float"),
             ValueType::Bool => write!(f, "Bool"),
             ValueType::String => write!(f, "String"),
@@ -75,6 +80,7 @@ impl fmt::Display for Value {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Value::Int(v) => write!(f, "{}", v.to_string()),
+            Value::UInt(v) => write!(f, "{}", v.to_string()),
             Value::Float(v) => write!(f, "{}", v.to_string()),
             Value::Bool(v) => write!(f, "{}", v.to_string()),
             Value::String(v) => write!(f, "{}", v),
@@ -227,12 +233,13 @@ impl Table {
                      .ok_or(GetValueError::NonOccupiedName { name: from.name.to_string(), hash: from.hash })?;
                 let field_from = &mut schema_from.fields[index_from];
 
-                let index_to = Table::find_name(from.name, schema_to)
-                     .ok_or(GetValueError::NonOccupiedName { name: from.name.to_string(), hash: from.hash })?;
-                let field_to = &mut schema_from.fields[index_to];
+                let index_to = Table::find_name(to.name, schema_to)
+                     .ok_or(GetValueError::NonOccupiedName { name: to.name.to_string(), hash: to.hash })?;
+                let field_to = &mut schema_to.fields[index_to];
+
+                field_from.transfer_amount(field_to, &amount)?;
 
                 Ok(())
-
             }
         }
     }
