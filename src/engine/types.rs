@@ -204,6 +204,18 @@ impl Table {
     pub fn apply(&mut self, operation: Operation) -> Result<(), OperationError> {
         match operation {
             Operation::Arith { target, op, amount } => {
+                let schema = self.get_mut_schema(&target.hash)?;
+
+                if schema.ledger.is_some() {
+                    return Err(OperationError::SetValueWithLedger{hash: target.hash});
+                }
+
+                let index = Table::find_name(target.name, schema)
+                     .ok_or(GetValueError::NonOccupiedName { name: target.name.to_string(), hash: target.hash })?;
+                let field = &mut schema.fields[index];
+
+                field.arith_amount(&amount, &op)?;
+
                 Ok(())
             },
 
