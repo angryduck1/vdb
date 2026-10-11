@@ -1,4 +1,5 @@
 use super::types::ValueType;
+use super::operations::ArithmeticOp;
 use std::fmt::{self, write};
 use std::num::NonZeroU32;
 
@@ -85,6 +86,10 @@ pub enum SetValueError {
 pub enum OperationError {
     Access(GetValueError),
 
+    SetValueWithLedger {
+        hash: u64,
+    },
+
     InvalidType {
         received: ValueType,
     },
@@ -96,7 +101,7 @@ pub enum OperationError {
         received: ValueType,
     },
 
-    OperationTypeMismatch {
+    OperationTransferTypeMismatch {
         expected: ValueType,
         received: ValueType,
     },
@@ -120,6 +125,16 @@ pub enum OperationError {
     },
 
     BalanceOverflow,
+
+    TargetAmountTypeMismatch {
+        expected: ValueType,
+        received: ValueType,
+    },
+
+    UnresolvedValues {
+        value_type: ValueType,
+        operation: ArithmeticOp
+    }
 }
 
 impl fmt::Display for ParseError  {
@@ -177,6 +192,7 @@ impl fmt::Display for OperationError  {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             OperationError::Access(e) => write!(f, "OperationError: {}", e),
+            OperationError::SetValueWithLedger { hash } => write!(f, "OperationError: SetValueWithLedger: Schema with hash {} is Ledger value", hash),
             OperationError::InvalidType { received } => write!(f, "OperationError: InvalidType: Amount ExpectedType: UInt, ReceivedType: {}", received),
             OperationError::TypeMismatch { name, hash, expected, received } => write!(f, "OperationError: TypeMismatch: Name {} with Scheme hash {} ExpectedType: {}, ReceivedType: {}", name, hash, expected, received),
             OperationError::LedgerMismatch { expected, received } => write!(f, "OperationError: LedgerMismatch: ExpectedLedger: {}, ReceivedLedger: {}", expected, received),
@@ -184,7 +200,9 @@ impl fmt::Display for OperationError  {
             OperationError::EqualHashs { hash } => write!(f, "OperationError: EqualHashs: From Hash {} is equal with To Hash", hash),
             OperationError::AmountOverflow { amount } => write!(f, "OperationError: AmountOverflow: Fail convert u128: {} to i128", amount),
             OperationError::BalanceOverflow => write!(f, "OperationError: BalanceOverflow"),
-            OperationError::OperationTypeMismatch { expected, received } => write!(f, "OperationError: OperationTypeMismatch: ExpectedType: {}, ReceivedType: {}", expected, received)
+            OperationError::OperationTransferTypeMismatch { expected, received } => write!(f, "OperationError: OperationTransferTypeMismatch: ExpectedType: {}, ReceivedType: {}", expected, received),
+            OperationError::TargetAmountTypeMismatch { expected, received } => write!(f, "OperationError: TargetAmountTypeMismatch: ExpectedType: {}, ReceivedType: {}", expected, received),
+            OperationError::UnresolvedValues { value_type, operation } => write!(f, "OperationError: UnresolvedValues: Operation: {} unresolved for {}", operation, value_type),
         }
     }
 }
