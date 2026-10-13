@@ -22,6 +22,7 @@ pub enum ParseTypeError {
     },
 }
 
+#[derive(Debug, Eq, PartialEq)]
 pub enum ParseLedgerError {
     InvalidValue {
         value: String
@@ -56,6 +57,7 @@ pub enum ValuesError {
     },
 }
 
+#[derive(Debug, Eq, PartialEq)]
 pub enum GetValueError {
     NonOccupiedHash {
         hash: u64,
@@ -67,6 +69,7 @@ pub enum GetValueError {
     },
 }
 
+#[derive(Debug, Eq, PartialEq)]
 pub enum SetValueError {
     Access(GetValueError),
 
