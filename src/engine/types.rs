@@ -12,7 +12,7 @@ use super::parser_name;
 use super::error_types::ValuesError;
 use super::operations::{ArithmeticOp, Operation, FieldRef};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Value {
     Int(i128),
     UInt(u128),
@@ -112,10 +112,6 @@ impl Table {
 
                 if values.len() == 0 {
                     return Err(ValuesError::NullSize)
-                }
-
-                for (i, name) in names.iter().enumerate() {
-                    parser_name::is_valid_name(i, name)?
                 }
 
                 let join_names = names.join("|");
