@@ -86,6 +86,7 @@ pub enum SetValueError {
     }
 }
 
+#[derive(Debug, Eq, PartialEq)]
 pub enum OperationError {
     Access(GetValueError),
 
