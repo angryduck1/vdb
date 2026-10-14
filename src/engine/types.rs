@@ -223,7 +223,7 @@ impl Table {
                 let [schema_from, schema_to] = self.map.get_disjoint_mut([&from.hash, &to.hash]);
 
                 let schema_from = schema_from.ok_or_else(|| GetValueError::NonOccupiedHash { hash: from.hash })?;
-                let schema_to = schema_to.ok_or_else(|| GetValueError::NonOccupiedHash { hash: from.hash })?;
+                let schema_to = schema_to.ok_or_else(|| GetValueError::NonOccupiedHash { hash: to.hash })?;
 
                 if schema_from.ledger.is_none() {
                     return Err(OperationError::LedgerIsNone { name: from.name.to_string(), hash: from.hash })
