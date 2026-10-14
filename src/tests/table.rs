@@ -7,8 +7,8 @@ use crate::engine::parser::VecValue;
 use crate::engine::parser_ledger::parse_ledger;
 use crate::engine::types::{Table, Value, ValueType, Policy};
 
-const DEF_NAMES: [&str; 7] = ["_int", "_uint", "_float", "_bool", "_string", "_vec_int", "_vec_float"];
-const DEF_TYPES: [ValueType; 7] = [ValueType::Int, ValueType::UInt, ValueType::Float, ValueType::Bool, ValueType::String, ValueType::VectorInt, ValueType::VectorFloat];
+pub const DEF_NAMES: [&str; 7] = ["_int", "_uint", "_float", "_bool", "_string", "_vec_int", "_vec_float"];
+pub const DEF_TYPES: [ValueType; 7] = [ValueType::Int, ValueType::UInt, ValueType::Float, ValueType::Bool, ValueType::String, ValueType::VectorInt, ValueType::VectorFloat];
 const DEF_HASH: u64 = 1;
 
 fn empty_table() -> Table {
@@ -27,7 +27,7 @@ fn default_values(values_types: Vec<ValueType>) -> Vec<Value> {
     zero_init(values_types)
 }
 
-fn default_init_table(ledger: Option<NonZeroU32>) -> Table {
+pub fn default_init_table(ledger: Option<NonZeroU32>) -> Table {
     let mut table = empty_table();
 
     let values = default_values(DEF_TYPES.to_vec());
@@ -35,6 +35,12 @@ fn default_init_table(ledger: Option<NonZeroU32>) -> Table {
     table.add_values(DEF_HASH, values, DEF_NAMES.to_vec(), Policy::Inline, ledger).unwrap();
 
     table
+}
+
+pub fn default_add_values(table: &mut Table, hash: u64, ledger: Option<NonZeroU32>) {
+    let values = default_values(DEF_TYPES.to_vec());
+
+    table.add_values(hash, values, DEF_NAMES.to_vec(), Policy::Inline, ledger).unwrap();
 }
 
 #[test]
@@ -87,6 +93,8 @@ fn table_set_value_none_ledger() {
     for (n, v) in DEF_NAMES.to_vec().iter().zip(values) {
         assert_eq!(table.set_value(&DEF_HASH, *n, v), Ok(()));
     }
+
+    assert_eq!(table.set_value(&DEF_HASH, DEF_NAMES[0], Value::UInt(1)), Err(SetValueError::TypeMismatch { name: DEF_NAMES[0].to_string(), hash: DEF_HASH, expected: DEF_TYPES[0], received: ValueType::UInt }));
 }
 
 #[test]
@@ -98,4 +106,19 @@ fn table_set_value_with_ledger() {
     for (n, v) in DEF_NAMES.to_vec().iter().zip(values) {
         assert_eq!(table.set_value(&DEF_HASH, *n, v), Err(SetValueError::SetValueWithLedger { name: n.to_string(), hash: DEF_HASH }));
     }
+}
+
+#[test]
+fn table_get_value() {
+    let mut table = default_init_table(None);
+
+    let def_values = default_values(DEF_TYPES.to_vec());
+
+    for (n, v) in DEF_NAMES.to_vec().iter().zip(def_values) {
+        assert_eq!(table.get_value(&DEF_HASH, n), Ok(v));
+    }
+
+    assert_eq!(table.get_value(&DEF_HASH, "meow"), Err(GetValueError::NonOccupiedName { name: String::from("meow"), hash: DEF_HASH }));
+
+    assert_eq!(table.get_value(&2u64, "_int"), Err(GetValueError::NonOccupiedHash { hash: 2u64 }));
 }
