@@ -3,6 +3,7 @@ use std::fmt;
 use super::types::Value;
 use super::error_types::OperationError;
 
+#[derive(Debug, Eq, PartialEq)]
 pub enum ArithmeticOp {
     Sub,
     Add,
@@ -10,11 +11,13 @@ pub enum ArithmeticOp {
     Mul
 }
 
+#[derive(Debug, Eq, PartialEq)]
 pub struct FieldRef<'a> {
     pub hash: u64,
     pub name: &'a str,
 }
 
+#[derive(Debug, PartialEq)]
 pub enum Operation<'a> {
     Arith {
         target: FieldRef<'a>,
