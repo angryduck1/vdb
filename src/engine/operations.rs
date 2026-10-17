@@ -54,8 +54,11 @@ impl Value {
 
         match (self, to) {
             (Value::Int(f), Value::Int(t)) => {
-                *f = f.checked_sub(amount_i128).ok_or_else(|| OperationError::BalanceOverflow)?;
-                *t = t.checked_add(amount_i128).ok_or_else(|| OperationError::BalanceOverflow)?;
+                let new_f = f.checked_sub(amount_i128).ok_or(OperationError::BalanceOverflow)?;
+                let new_t = t.checked_add(amount_i128).ok_or(OperationError::BalanceOverflow)?;
+
+                *f = new_f;
+                *t = new_t;
             },
 
             (f, t) => {
@@ -127,11 +130,16 @@ impl Value {
             ArithmeticOp::Div => {
                 match (self, amount) {
                     (Value::Float(t), Value::Float(a)) => {
-                        let res = t.algebraic_sub(*a);
+                        let res = t.algebraic_div(*a);
+
+                        if *a == 0.0 {
+                            return Err(OperationError::DivideByZero);
+                        }
 
                         if res.is_finite() {
                             *t = res;
-                        } else {
+                        }
+                        else {
                             return Err(OperationError::BalanceOverflow);
                         }
                     },
