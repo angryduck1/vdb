@@ -138,7 +138,9 @@ pub enum OperationError {
     UnresolvedValues {
         value_type: ValueType,
         operation: ArithmeticOp
-    }
+    },
+
+    DivideByZero
 }
 
 impl fmt::Display for ParseError  {
@@ -207,6 +209,7 @@ impl fmt::Display for OperationError  {
             OperationError::OperationTransferTypeMismatch { expected, received } => write!(f, "OperationError: OperationTransferTypeMismatch: ExpectedType: {}, ReceivedType: {}", expected, received),
             OperationError::TargetAmountTypeMismatch { expected, received } => write!(f, "OperationError: TargetAmountTypeMismatch: ExpectedType: {}, ReceivedType: {}", expected, received),
             OperationError::UnresolvedValues { value_type, operation } => write!(f, "OperationError: UnresolvedValues: Operation: {} unresolved for {}", operation, value_type),
+            OperationError::DivideByZero => write!(f, "OperationError: DivideByZero"),
         }
     }
 }
