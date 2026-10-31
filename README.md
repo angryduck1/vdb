@@ -47,7 +47,7 @@ $ cargo test
 vdb currently builds as a binary crate. `src/main.rs` is empty: there is no CLI or server yet. The
 tests are the interface. A stable Rust toolchain with edition 2024 support is required.
 
-## The model
+## The architecture
 
 A `Table` is a `HashMap<u64, Schema>`. A `Schema` owns a fixed array of values, the matching field
 names, an initialization policy, and an optional ledger id.
