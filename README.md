@@ -202,7 +202,7 @@ foundation, not a promise.
 
 ## License
 
-No license has been selected yet.
+MIT.
 
 ---
 
